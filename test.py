@@ -44,13 +44,13 @@ class Player1(pygame.sprite.Sprite):
         self.image = Player1.orig_image
         self.rect = self.image.get_rect().move(50, 50)
         self.angle = 90
-        self.x = 50
-        self.y = 50
-        self.moving = True
         self.mask = pygame.mask.from_surface(self.image)
 
     def update(self):
-        if not pygame.sprite.spritecollide(self, borders, False, pygame.sprite.collide_mask):
+        if pygame.sprite.collide_mask(self, vert_border):
+            self.moving = False
+            return
+        if self.moving:
             self.image = pygame.transform.rotate(Player1.orig_image, self.angle)
             self.rect = self.rect.move(math.cos(math.radians(self.angle) * 10), math.sin(math.radians(self.angle) * 10))
             self.mask = pygame.mask.from_surface(self.image)
