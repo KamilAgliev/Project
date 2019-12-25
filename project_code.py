@@ -1,10 +1,9 @@
 import math
 import os
-import sys
 
 import pygame
 
-FPS = 20
+FPS = 10
 pygame.init()
 WIDTH, HEIGHT = 1000, 600
 pygame.display.set_caption('Space rangers')
@@ -12,6 +11,8 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 player1_group = pygame.sprite.Group()
 player2_group = pygame.sprite.Group()
 borders = pygame.sprite.Group()
+bullets1 = pygame.sprite.Group()
+bullets2 = pygame.sprite.Group()
 clock = pygame.time.Clock()
 
 
@@ -27,7 +28,7 @@ def load_image(name, colorkey=None):
     return image
 
 
-class border(pygame.sprite.Sprite):
+class Border(pygame.sprite.Sprite):
 
     def __init__(self, x, y, wid, hei):
         super().__init__(borders)
@@ -38,7 +39,8 @@ class border(pygame.sprite.Sprite):
 
 
 class Player2(pygame.sprite.Sprite):
-    orig_image = load_image("player22.png", -1)
+    orig_image = load_image("spaceship2.png", -1)
+    orig_image = pygame.transform.scale(orig_image, (50, 50))
 
     def __init__(self):
         super().__init__(player2_group)
@@ -52,18 +54,25 @@ class Player2(pygame.sprite.Sprite):
         self.mask = pygame.mask.from_surface(self.image)
 
     def update(self):
+        for bullet in bullets1:
+            if pygame.sprite.spritecollide(self, [bullet], False):
+                self.kill()
+                bullet.kill()
+                global running
+                running = False
+
         if self.moving:
             self.image = pygame.transform.rotate(Player2.orig_image, self.angle)
             self.rect = self.image.get_rect().move(self.x, self.y)
-            self.x += math.cos(math.radians(self.angle) * 40)
-            self.y += math.sin(math.radians(self.angle) * 40)
+            self.x += math.sin(math.radians(self.angle + 180)) * 5
+            self.y += math.cos(math.radians(self.angle + 180)) * 5
             self.rect.x = self.x
             self.rect.y = self.y
         if pygame.sprite.spritecollideany(self, borders, False) \
                 or pygame.sprite.spritecollideany(self, player1_group, False):
             self.moving = False
-            self.x -= math.cos(math.radians(self.angle) * 40)
-            self.y -= math.sin(math.radians(self.angle) * 40)
+            self.x -= math.cos(math.radians(self.angle + 180)) * 5
+            self.y -= math.sin(math.radians(self.angle + 180)) * 5
             self.rect.x = self.x
             self.rect.y = self.y
 
@@ -71,8 +80,40 @@ class Player2(pygame.sprite.Sprite):
         self.angle = (self.angle + k) % 360
 
 
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, belongs, angle, x, y):
+        super().__init__()
+        self.angle = angle
+        self.radius = 5
+        self.image = pygame.Surface((2 * self.radius, 2 * self.radius),
+                                    pygame.SRCALPHA,
+                                    32)
+        pygame.draw.circle(self.image, pygame.Color("red"),
+                           (self.radius, self.radius),
+                           self.radius)
+        x += math.sin(math.radians(self.angle + 180)) * 53
+        y += math.cos(math.radians(self.angle + 180)) * 38
+        self.rect = pygame.Rect(x, y, 2 * self.radius, 2 * self.radius)
+        self.moving = True
+        if belongs == "first":
+            bullets1.add(self)
+        else:
+            bullets2.add(self)
+
+    def update(self):
+        self.rect = self.rect.move(
+            math.sin(math.radians(self.angle + 180)) * 10,
+            math.cos(math.radians(self.angle + 180)) * 10)
+        for bord in borders:
+            if pygame.sprite.collide_mask(self, bord):
+                self.kill()
+        if self.rect.x < 0 or self.rect.x > WIDTH or self.rect.y < 0 or self.rect.y > HEIGHT:
+            self.kill()
+
+
 class Player1(pygame.sprite.Sprite):
-    orig_image = load_image("player11.png", -1)
+    orig_image = load_image("spaceship1.png", -1)
+    orig_image = pygame.transform.scale(orig_image, (50, 50))
 
     def __init__(self):
         super().__init__(player1_group)
@@ -86,64 +127,57 @@ class Player1(pygame.sprite.Sprite):
         self.mask = pygame.mask.from_surface(self.image)
 
     def update(self):
-        # print(self.moving, "in")
+        # is next step possible?
         if not self.moving:
-            all_sprites = pygame.sprite.Group()
             # создадим спрайт
             sprite = pygame.sprite.Sprite()
             # определим его вид
-            sprite.image = pygame.transform.rotate(Player1.orig_image, self.angle)
+            sprite.image = pygame.transform.rotate(Player1.orig_image,
+                                                   self.angle)
             # и размеры
             x, y = self.x, self.y
             sprite.rect = sprite.image.get_rect().move(x, y)
             # добавим спрайт в группу
-            x += math.cos(math.radians(self.angle) * 10)
-            y += math.sin(math.radians(self.angle) * 10)
+            x += math.cos(math.radians(self.angle + 180)) * 5
+            y += math.sin(math.radians(self.angle + 180)) * 5
             sprite.rect.x = x
             sprite.rect.y = y
-            mask = pygame.mask.from_surface(sprite.image)
+            sprite.mask = pygame.mask.from_surface(sprite.image)
             ok = True
             for bord in borders:
-                if pygame.sprite.collide_mask(mask, bord):
+                if pygame.sprite.collide_mask(sprite, bord):
                     ok = False
-            if pygame.sprite.collide_mask(mask, PLAYER2):
+            if pygame.sprite.collide_mask(sprite, PLAYER2):
                 ok = False
             self.moving = ok
-
+        # moving
         if self.moving:
             self.image = pygame.transform.rotate(Player1.orig_image, self.angle)
             self.rect = self.image.get_rect().move(self.x, self.y)
-            self.x += math.cos(math.radians(self.angle) * 10)
-            self.y += math.sin(math.radians(self.angle) * 10)
+            self.x += math.sin(math.radians(self.angle + 180)) * 5
+            self.y += math.cos(math.radians(self.angle + 180)) * 5
             self.rect.x = self.x
             self.rect.y = self.y
             for bord in borders:
                 if pygame.sprite.collide_mask(self, bord):
                     self.moving = False
             if pygame.sprite.collide_mask(self, PLAYER2):
-                    self.moving = False
-
-        # if pygame.sprite.spritecollideany(self, borders, False) \
-        #         or pygame.sprite.spritecollideany(self, player2_group, False):
-        #     self.moving = False
-            # self.x -= math.cos(math.radians(self.angle) * 10)
-            # self.y -= math.sin(math.radians(self.angle) * 10)
-            # self.rect.x = self.x
-            # self.rect.y = self.y
-        # print(self.moving, "out")
-        print(self.x, self.y)
+                self.moving = False
 
     def rotating(self, k):
-        self.angle += k % 360
+        self.angle = (self.angle + k) % 360
+        print(self.angle)
+        if self.angle == 270:
+            print(self.x, self.y)
 
 
 PLAYER1 = Player1()
 PLAYER2 = Player2()
 
-horiz_border = border(30, 580, 940, 3)
-horiz_border2 = border(30, 30, 940, 3)
-vert_border = border(30, 30, 3, 550)
-vert_border2 = border(967, 30, 3, 550)
+horiz_border = Border(30, 580, 940, 3)
+horiz_border2 = Border(30, 30, 940, 3)
+vert_border = Border(30, 30, 3, 550)
+vert_border2 = Border(967, 30, 3, 550)
 
 # background = load_image("background.png")
 
@@ -165,13 +199,17 @@ while running:
                 right_pres = True
             if event.key == pygame.K_RIGHT:
                 left_pres = True
+            if event.key == pygame.K_SPACE:
+                Bullet("first", PLAYER1.angle, PLAYER1.x, PLAYER1.y)
+            if event.key == pygame.K_RCTRL:
+                Bullet("second", PLAYER2.angle, PLAYER2.x, PLAYER2.y)
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_a:
                 a_pres = False
             if event.key == pygame.K_d:
                 d_pres = False
             if event.key == pygame.K_LEFT:
-                right_pres = False
+                right_pres = False  
             if event.key == pygame.K_RIGHT:
                 left_pres = False
 
@@ -180,22 +218,21 @@ while running:
     player1_group.draw(screen)
     player2_group.draw(screen)
     borders.draw(screen)
+    bullets1.draw(screen)
+    bullets2.draw(screen)
 
     pygame.display.flip()
     player1_group.update()
     player2_group.update()
+    bullets1.update()
+    bullets2.update()
     if a_pres:
-        PLAYER1.angle += 1
-        PLAYER1.angle %= 360
+        PLAYER1.rotating(5)
     if d_pres:
-        PLAYER1.angle -= 1
-        PLAYER1.angle %= 360
+        PLAYER1.rotating(-5)
     if right_pres:
-        PLAYER2.angle -= 1
-        PLAYER2.angle %= 360
+        PLAYER2.rotating(5)
     if left_pres:
-        PLAYER2.angle += 1
-        PLAYER2.angle %= 360
-
+        PLAYER2.rotating(-5)
     clock.tick(FPS)
 pygame.quit()
