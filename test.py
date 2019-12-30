@@ -27,34 +27,39 @@ def load_image(name, colorkey=None):
 
 
 class border(pygame.sprite.Sprite):
-
     def __init__(self, x, y, wid, hei):
         super().__init__(borders)
-        self.image = pygame.Surface([wid, hei])
+        self.image = pygame.Surface((wid, hei), pygame.SRCALPHA)
         self.image.fill((0, 0, 0))
         self.rect = pygame.Rect(x, y, wid, hei)
         self.mask = pygame.mask.from_surface(self.image)
 
 
 class Player1(pygame.sprite.Sprite):
-    orig_image = load_image("player11.png", -1)
+    orig_image = load_image("spaceship1.png", -1)
+    orig_image = pygame.transform.scale(orig_image, (50, 50))
 
     def __init__(self):
         super().__init__(player1_group)
         self.image = Player1.orig_image
-        self.rect = self.image.get_rect().move(50, 50)
-        self.angle = 90
+        self.rect = self.image.get_rect().move(100, 100)
+        player1_group.add(self)
+        self.angle = 180
+        self.x = 100
+        self.y = 100
+        self.moving = True
         self.mask = pygame.mask.from_surface(self.image)
 
     def update(self):
-        if pygame.sprite.collide_mask(self, vert_border):
-            self.moving = False
-            return
-        if self.moving:
-            self.image = pygame.transform.rotate(Player1.orig_image, self.angle)
-            self.rect = self.rect.move(math.cos(math.radians(self.angle) * 10), math.sin(math.radians(self.angle) * 10))
-            self.mask = pygame.mask.from_surface(self.image)
-
+        if not pygame.sprite.spritecollide(self, borders, False, pygame.sprite.collide_mask):
+            self.rect.x -= 2
+            print(1)
+        for bullet in bullets1:
+            if pygame.sprite.spritecollide(self, [bullet], False):
+                # self.kill()
+                bullet.kill()
+                global running
+                running = False
 
 PLAYER1 = Player1()
 horiz_border = border(30, 580, 940, 3)
@@ -70,7 +75,7 @@ while running:
     screen.fill((255, 255, 255))
     player1_group.draw(screen)
     borders.draw(screen)
-    pygame.display.flip()
     player1_group.update()
+    pygame.display.flip()
     clock.tick(FPS)
 pygame.quit()

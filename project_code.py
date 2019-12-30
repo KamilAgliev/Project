@@ -34,7 +34,7 @@ class Border(pygame.sprite.Sprite):
 
     def __init__(self, x, y, wid, hei):
         super().__init__(borders)
-        self.image = pygame.Surface([wid, hei])
+        self.image = pygame.Surface((wid, hei), pygame.SRCALPHA)
         self.image.fill((0, 0, 0))
         self.rect = pygame.Rect(x, y, wid, hei)
         self.mask = pygame.mask.from_surface(self.image)
@@ -58,7 +58,7 @@ class Player2(pygame.sprite.Sprite):
     def update(self):
         for bullet in bullets1:
             if pygame.sprite.spritecollide(self, [bullet], False):
-                self.kill()
+                # self.kill()
                 bullet.kill()
                 global running
                 running = False
@@ -98,30 +98,13 @@ class Player1(pygame.sprite.Sprite):
         self.mask = pygame.mask.from_surface(self.image)
 
     def update(self):
-        # is next step possible?
-        if not self.moving:
-            # создадим спрайт
-            sprite = pygame.sprite.Sprite()
-            # определим его вид
-            sprite.image = pygame.transform.rotate(Player1.orig_image,
-                                                   self.angle)
-            # и размеры
-            x, y = self.x, self.y
-            sprite.rect = sprite.image.get_rect().move(x, y)
-            # добавим спрайт в группу
-            x += math.cos(math.radians(self.angle + 180)) * 5
-            y += math.sin(math.radians(self.angle + 180)) * 5
-            sprite.rect.x = x
-            sprite.rect.y = y
-            sprite.mask = pygame.mask.from_surface(sprite.image)
-            ok = True
-            for bord in borders:
-                if pygame.sprite.collide_mask(sprite, bord):
-                    ok = False
-            if pygame.sprite.collide_mask(sprite, PLAYER2):
+        ok = True
+        for bord in borders:
+            if pygame.sprite.collide_mask(self, bord):
                 ok = False
+        if pygame.sprite.collide_mask(self, PLAYER2):
+            ok = False
             self.moving = ok
-        # moving
         if self.moving:
             self.image = pygame.transform.rotate(Player1.orig_image, self.angle)
             self.rect = self.image.get_rect().move(self.x, self.y)
@@ -137,9 +120,6 @@ class Player1(pygame.sprite.Sprite):
 
     def rotating(self, k):
         self.angle = (self.angle + k) % 360
-        print(self.angle)
-        if self.angle == 270:
-            print(self.x, self.y)
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -180,15 +160,15 @@ class Asteroid(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__(asteroids)
         self.image = Asteroid.orig_image
-        x, y = random.randint(), random.randint()
-        while collide:
-            x, y = random.randint(), random.randint()
-        self.rect = self.image.get_rect().move(x, y)
-        self.vx = random.randint(-5, 5)
-        self.vy = random.randrange(-5, 5)
+        # x, y = random.randint(), random.randint()
+        # while collide:
+        #     x, y = random.randint(), random.randint()
+        # self.rect = self.image.get_rect().move(x, y)
+        # self.vx = random.randint(-5, 5)
+        # self.vy = random.randrange(-5, 5)
 
-    def update(self):
-        self.rect = self.rect.move(self.vx, self.vy)
+    # def update(self):
+    #     self.rect = self.rect.move(self.vx, self.vy)
 
 
 PLAYER1 = Player1()
@@ -206,6 +186,8 @@ for _ in range(10):
 running = True
 a_pres = False
 d_pres = False
+w_pres = False
+s_pres = False
 right_pres = False
 left_pres = False
 while running:
@@ -219,6 +201,10 @@ while running:
                 d_pres = True
             if event.key == pygame.K_LEFT:
                 right_pres = True
+            if event.key == pygame.K_w:
+                w_pres = True
+            if event.key == pygame.K_s:
+                s_pres = True
             if event.key == pygame.K_RIGHT:
                 left_pres = True
             if event.key == pygame.K_SPACE:
@@ -230,6 +216,10 @@ while running:
                 a_pres = False
             if event.key == pygame.K_d:
                 d_pres = False
+            if event.key == pygame.K_w:
+                w_pres = False
+            if event.key == pygame.K_s:
+                s_pres = False
             if event.key == pygame.K_LEFT:
                 right_pres = False
             if event.key == pygame.K_RIGHT:
@@ -257,5 +247,9 @@ while running:
         PLAYER2.rotating(5)
     if left_pres:
         PLAYER2.rotating(-5)
+    if w_pres:
+        PLAYER1.rect.move(0, -1)
+    if s_pres:
+        PLAYER1.rect.move(0, 1)
     clock.tick(FPS)
 pygame.quit()
