@@ -385,7 +385,7 @@ while running:
         if winner == 1:
             explosion = Explosion(load_image("explosion.png", -1), 8, 6, PLAYER2.rect.x, PLAYER2.rect.y)
             PLAYER2.kill()
-            while explosion.cur_frame != 78:
+            while explosion.cur_frame != 44:
                 clock.tick(10)
                 explosion_group.draw(screen)
                 pygame.display.flip()
@@ -393,7 +393,7 @@ while running:
         else:
             explosion = Explosion(load_image("explosion.png", -1), 8, 6, PLAYER1.rect.x, PLAYER1.rect.y)
             PLAYER1.kill()
-            while explosion.cur_frame != 78:
+            while explosion.cur_frame != 44:
                 clock.tick(10)
                 explosion_group.draw(screen)
                 pygame.display.flip()
