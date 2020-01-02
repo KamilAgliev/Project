@@ -10,7 +10,7 @@ FPS = 20
 FPS_for_animation = 15
 pygame.init()
 WIDTH, HEIGHT = 1000, 600
-pygame.display.set_caption('SPACE RANGERS')
+pygame.display.set_caption('COSMO RANGERS')
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 player1_group = pygame.sprite.Group()
 player2_group = pygame.sprite.Group()
@@ -34,7 +34,7 @@ def terminate():
 
 def start_menu():
     """Start menu: rules and maps (in other words - starting interface)"""
-    intro_text = ["SPACE RANGERS",
+    intro_text = ["COSMO RANGERS",
                   "Правила игры:",
                   "1) У каждого игрока есть космический корабль",
                   "2) При нажатии SPACE и LCTRL корабль выстреливает",
