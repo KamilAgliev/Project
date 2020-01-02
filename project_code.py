@@ -1,12 +1,14 @@
 import math
 import os
 import random
+import sys
+
 import pygame
 
-FPS = 10
+FPS = 20
 pygame.init()
 WIDTH, HEIGHT = 1000, 600
-pygame.display.set_caption('Space rangers')
+pygame.display.set_caption('SPACE RANGERS')
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 player1_group = pygame.sprite.Group()
 player2_group = pygame.sprite.Group()
@@ -15,8 +17,61 @@ bullets1 = pygame.sprite.Group()
 bullets2 = pygame.sprite.Group()
 asteroids_group = pygame.sprite.Group()
 clock = pygame.time.Clock()
-game_over = False
 cur_asteroid = 0
+game_over = None
+winner = None
+
+
+def terminate():
+    pygame.quit()
+    sys.exit()
+
+
+def start_menu():
+    intro_text = ["SPACE RANGERS",
+                  "Правила игры:",
+                  "1) У каждого игрока есть космический корабль",
+                  "2) При нажатии SPACE и LCTRL корабль выстреливает",
+                  "3) При нажатии A и D первый корабль поворачивается в сторону",
+                  "4) При нажатии RIGHT и LEFT второй корабль поворачивается в сторону",
+                  "5) Цель игры: попасть снарядом в противника",
+                  "6) Также вам будут мешать разные препятствия(астероиды, преграды)"]
+
+    fon = pygame.transform.scale(load_image('background.png'), (WIDTH, HEIGHT))
+    screen.blit(fon, (0, 0))
+    font = pygame.font.Font(None, 30)
+    text_coord = 50
+    for line in intro_text:
+        string_rendered = font.render(line, 1, pygame.Color('white'))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.top = text_coord
+        intro_rect.x = 200
+        text_coord += intro_rect.height
+        screen.blit(string_rendered, intro_rect)
+
+    string_rendered = font.render("Выберите карту:", 1, pygame.Color('white'))
+    screen.blit(string_rendered, (350, 350))
+
+    font_big = pygame.font.Font(None, 100)
+    string_rendered = font_big.render("1", 1, pygame.Color('white'))
+    screen.blit(string_rendered, (250, 450))
+    string_rendered = font_big.render("2", 1, pygame.Color('white'))
+    screen.blit(string_rendered, (700, 450))
+    coord1 = [250, 450, 275, 505]
+    coord2 = [700, 450, 735, 510]
+    while True:
+        for event1 in pygame.event.get():
+            if event1.type == pygame.QUIT:
+                terminate()
+            elif event1.type == pygame.MOUSEBUTTONDOWN:
+                x, y = event1.pos
+                if x >= coord1[0] and x <= coord1[2] and y >= coord1[1] and y <= coord1[3]:
+                    return 1
+                if x >= coord2[0] and x <= coord2[2] and y >= coord2[1] and y <= coord2[3]:
+                    return 2
+        pygame.display.flip()
+        clock.tick(FPS)
 
 
 def load_image(name, colorkey=None):
@@ -48,7 +103,7 @@ class Player2(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__(player2_group)
         self.image = Player2.orig_image
-        self.rect = self.image.get_rect().move(800, 500)
+        self.rect = self.image.get_rect().move(100, 500)
         player2_group.add(self)
         self.angle = 270
         self.mask = pygame.mask.from_surface(self.image, pygame.SRCALPHA)
@@ -58,7 +113,8 @@ class Player2(pygame.sprite.Sprite):
         for bord in borders:
             if pygame.sprite.collide_mask(self, bord):
                 self.rotating(180)
-                self.image = pygame.transform.rotate(Player2.orig_image, self.angle)
+                self.rect.x += math.sin(math.radians(self.angle + 180)) * 10
+                self.rect.y += math.cos(math.radians(self.angle + 180)) * 10
                 break
         if pygame.sprite.collide_mask(self, PLAYER1):
             self.rotating(180)
@@ -86,15 +142,9 @@ class Player1(pygame.sprite.Sprite):
     def update(self):
         for bord in borders:
             if pygame.sprite.collide_mask(self, bord):
-                if bord.type == 1:
-                    self.rect.y -= 10
-                if bord.type == 2:
-                    self.rect.y += 10
-                if bord.type == 3:
-                    self.rect.x += 10
-                if bord.type == 4:
-                    self.rect.x -= 10
                 self.rotating(180)
+                self.rect.x += math.sin(math.radians(self.angle + 180)) * 10
+                self.rect.y += math.cos(math.radians(self.angle + 180)) * 10
                 break
         if pygame.sprite.collide_mask(self, PLAYER2):
             self.rotating(180)
@@ -124,60 +174,79 @@ class Bullet(pygame.sprite.Sprite):
         self.mask = pygame.mask.from_surface(self.image)
 
     def update(self):
-        self.rect = self.rect.move(
-            math.sin(math.radians(self.angle + 180)) * 10,
-            math.cos(math.radians(self.angle + 180)) * 10)
-        for bord in borders:
-            if pygame.sprite.collide_mask(self, bord):
-                self.kill()
+        if self.rect.x < 0 or self.rect.x > 1000 or self.rect.y < 0 or self.rect.y > 600:
+            self.kill()
+            return
         if self.belongs == "first":
             if pygame.sprite.collide_mask(self, PLAYER2):
                 PLAYER2.kill()
                 self.kill()
+                global game_over, winner
+                game_over = True
+                winner = 1
         if self.belongs == "second":
             if pygame.sprite.collide_mask(self, PLAYER1):
                 PLAYER1.kill()
                 self.kill()
+                game_over = True
+                winner = 2
+        for ast in asteroids_group:
+            if pygame.sprite.collide_mask(self, ast):
+                ast.kill()
+                self.kill()
+                return
+        for bord in borders:
+            if pygame.sprite.collide_mask(self, bord):
+                self.kill()
+                return
+        self.rect = self.rect.move(
+            math.sin(math.radians(self.angle + 180)) * 10,
+            math.cos(math.radians(self.angle + 180)) * 10)
 
 
 class Asteroid(pygame.sprite.Sprite):
     orig_image = load_image("AsteroidBrown.png", -1)
-    orig_image = pygame.transform.scale(orig_image, (30, 30))
+    orig_image = pygame.transform.scale(orig_image, (40, 40))
 
     def __init__(self):
         super().__init__(asteroids_group)
-        asteroids_group.add(self)
         self.image = Asteroid.orig_image
         self.rect = self.image.get_rect()
 
         self.mask = pygame.mask.from_surface(self.image, pygame.SRCALPHA)
-        x, y = random.randint(40, 1000), random.randint(30, 600)
+        x, y = random.randint(top_left, WIDTH - top_left * 2 - top_left), random.randint(top_up,
+                                                                                         HEIGHT - top_bot * 2 - top_bot)
         self.rect.x, self.rect.y = x, y
         while True:
-            x, y = random.randint(40, 1000), random.randint(30, 600)
+            x, y = random.randint(top_left, WIDTH - top_left * 2 - top_left), random.randint(top_up,
+                                                                                             HEIGHT - top_bot * 2 - top_bot)
             self.rect.x = x
             self.rect.y = y
             if self.is_legit():
                 break
-        self.vx = random.randint(-5, 5)
-        self.vy = random.randrange(-5, 5)
+        self.angle = random.randint(0, 360)
 
     def update(self):
-        for bullet in bullets2:
-            if pygame.sprite.collide_mask(self, bullet):
+        for bullet2 in bullets2:
+            if pygame.sprite.collide_mask(self, bullet2):
                 self.kill()
-                bullet.kill()
-        for bullet in bullets2:
-            if pygame.sprite.collide_mask(self, bullet):
+                bullet2.kill()
+                return
+        for bullet1 in bullets1:
+            if pygame.sprite.collide_mask(self, bullet1):
                 self.kill()
-                bullet.kill()
+                bullet1.kill()
+                return
         for bord in borders:
             if pygame.sprite.collide_mask(self, bord):
-                if bord.type <= 2:
-                    self.vy *= -1
-                else:
-                    self.vx *= -1
-        self.rect = self.rect.move(self.vx, self.vy)
+                self.angle += 180
+                self.angle %= 360
+                self.rect = self.rect.move(
+                    math.sin(math.radians(self.angle + 180)) * 4,
+                    math.cos(math.radians(self.angle + 180)) * 4)
+        self.rect = self.rect.move(
+            math.sin(math.radians(self.angle + 180)) * 5,
+            math.cos(math.radians(self.angle + 180)) * 5)
 
     def is_legit(self):
         ok = True
@@ -198,71 +267,130 @@ class Asteroid(pygame.sprite.Sprite):
         return ok
 
 
-PLAYER1 = Player1()
-PLAYER2 = Player2()
-horiz_border = Border(30, 580, 940, 3, 1)
-horiz_border2 = Border(30, 30, 940, 3, 2)
-vert_border = Border(30, 30, 3, 550, 3)
-vert_border2 = Border(967, 30, 3, 550, 4)
-for _ in range(20):
-    cur_asteroid += 1
-    Asteroid()
 running = True
-
-# start_menu()
-a_pres = False
-d_pres = False
-right_pres = False
-left_pres = False
-
 while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_a:
-                a_pres = True
-            if event.key == pygame.K_d:
-                d_pres = True
-            if event.key == pygame.K_RIGHT:
-                right_pres = True
-            if event.key == pygame.K_LEFT:
-                left_pres = True
-            if event.key == pygame.K_SPACE:
-                Bullet("first", PLAYER1.angle, PLAYER1.rect)
-            if event.key == pygame.K_RCTRL:
-                Bullet("second", PLAYER2.angle, PLAYER2.rect)
-        if event.type == pygame.KEYUP:
-            if event.key == pygame.K_a:
-                a_pres = False
-            if event.key == pygame.K_d:
-                d_pres = False
-            if event.key == pygame.K_RIGHT:
-                right_pres = False
-            if event.key == pygame.K_LEFT:
-                left_pres = False
-
-    screen.fill((255, 255, 255))
-    player1_group.draw(screen)
-    player2_group.draw(screen)
-    borders.draw(screen)
-    bullets2.draw(screen)
-    bullets1.draw(screen)
-    asteroids_group.draw(screen)
-    pygame.display.flip()
-    player1_group.update()
-    player2_group.update()
-    bullets1.update()
-    bullets2.update()
-    asteroids_group.update()
-    clock.tick(FPS)
-    if a_pres:
-        PLAYER1.rotating(5)
-    if d_pres:
-        PLAYER1.rotating(-5)
-    if right_pres:
-        PLAYER2.rotating(-5)
-    if left_pres:
-        PLAYER2.rotating(5)
-    pygame.display.flip()
-pygame.quit()
+    begin = start_menu()
+    get_back_to_menu = False
+    while not get_back_to_menu:
+        print(1)
+        winner = 0
+        game_over = False
+        PLAYER1 = Player1()
+        PLAYER2 = Player2()
+        top_left = 30
+        top_right = 30
+        top_up = 30
+        top_bot = 20
+        width_bord = 3
+        type = 1
+        horiz_border = Border(top_left, HEIGHT - top_up, WIDTH - top_left * 2 - top_left, width_bord, 1)
+        horiz_border2 = Border(top_left, top_up, WIDTH - top_left * 2 - top_left, width_bord, 2)
+        vert_border = Border(top_left, top_up, width_bord, HEIGHT - top_bot * 2 - top_bot, 3)
+        vert_border2 = Border(WIDTH - top_left * 2, top_up, width_bord, HEIGHT - top_bot * 2 - top_bot + width_bord, 4)
+        if begin == 1:
+            horiz_border3 = Border((WIDTH - top_left * 2) / 2, (HEIGHT - top_bot * 2 - top_bot) / 2 - 130,
+                                   width_bord,
+                                   300,
+                                   5)
+            vert_border3 = Border((WIDTH - top_left * 2) / 2 - 200, (HEIGHT - top_bot * 2 - top_bot) / 2 + 30, 400,
+                                  width_bord,
+                                  -1)
+            for _ in range(20):
+                cur_asteroid += 1
+                Asteroid()
+        else:
+            for _ in range(10):
+                cur_asteroid += 1
+                Asteroid()
+        a_pres = False
+        d_pres = False
+        right_pres = False
+        left_pres = False
+        print("game begins")
+        while not game_over:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    terminate()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_a:
+                        a_pres = True
+                    if event.key == pygame.K_d:
+                        d_pres = True
+                    if event.key == pygame.K_RIGHT:
+                        right_pres = True
+                    if event.key == pygame.K_LEFT:
+                        left_pres = True
+                    if event.key == pygame.K_SPACE:
+                        Bullet("first", PLAYER1.angle, PLAYER1.rect)
+                    if event.key == pygame.K_RCTRL:
+                        Bullet("second", PLAYER2.angle, PLAYER2.rect)
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_a:
+                        a_pres = False
+                    if event.key == pygame.K_d:
+                        d_pres = False
+                    if event.key == pygame.K_RIGHT:
+                        right_pres = False
+                    if event.key == pygame.K_LEFT:
+                        left_pres = False
+            screen.fill((255, 255, 255))
+            player1_group.draw(screen)
+            player2_group.draw(screen)
+            borders.draw(screen)
+            bullets2.draw(screen)
+            bullets1.draw(screen)
+            asteroids_group.draw(screen)
+            pygame.display.flip()
+            player1_group.update()
+            player2_group.update()
+            bullets1.update()
+            bullets2.update()
+            asteroids_group.update()
+            clock.tick(FPS)
+            if a_pres:
+                PLAYER1.rotating(5)
+            if d_pres:
+                PLAYER1.rotating(-5)
+            if right_pres:
+                PLAYER2.rotating(-5)
+            if left_pres:
+                PLAYER2.rotating(5)
+            pygame.display.flip()
+        print("gameover")
+        game_over = False
+        if winner == 1:
+            PLAYER1.kill()
+        else:
+            PLAYER2.kill()
+        for ast in asteroids_group:
+            ast.kill()
+        font1 = pygame.font.Font(None, 100)
+        font2 = pygame.font.Font(None, 70)
+        screen.blit(pygame.transform.scale(load_image("background.png"), (WIDTH, HEIGHT)), [0, 0])
+        y = 200
+        string_rendered = font1.render(f"Player {winner} is Winner!", 1, pygame.Color('white'))
+        screen.blit(string_rendered, (200, y))
+        y += 100
+        string_rendered = font2.render("rematch                     back to menu", 1, pygame.Color('white'))
+        screen.blit(string_rendered, (100, y))
+        pygame.display.flip()
+        print("closing interface")
+        fl = 1
+        while fl:
+            for e in pygame.event.get():
+                print(1)
+                if e.type == pygame.QUIT:
+                    terminate()
+                if e.type == pygame.MOUSEBUTTONDOWN:
+                    x1, y1 = e.pos
+                    print(e.pos)
+                    if x1 >= 103 and x1 <= 297 and y1 >= 314 and y1 <= 340:
+                        fl = 0
+                    if x1 >= 575 and x1 <= 883 and y1 >= 314 and y1 <= 340:
+                        fl = 0
+                        get_back_to_menu = True
+        if get_back_to_menu:
+            print("back to menu")
+        else:
+            print('rematch')
+terminate()
