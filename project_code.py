@@ -15,6 +15,7 @@ player2_group = pygame.sprite.Group()
 borders = pygame.sprite.Group()
 bullets1 = pygame.sprite.Group()
 bullets2 = pygame.sprite.Group()
+explosion_group = pygame.sprite.Group()
 asteroids_group = pygame.sprite.Group()
 clock = pygame.time.Clock()
 cur_asteroid = 0
@@ -24,7 +25,7 @@ winner = None
 
 def terminate():
     pygame.quit()
-    sys.exit()
+    sys.exit(0)
 
 
 def start_menu():
@@ -58,6 +59,7 @@ def start_menu():
     screen.blit(string_rendered, (250, 450))
     string_rendered = font_big.render("2", 1, pygame.Color('white'))
     screen.blit(string_rendered, (700, 450))
+    pygame.display.flip()
     coord1 = [250, 450, 275, 505]
     coord2 = [700, 450, 735, 510]
     while True:
@@ -70,8 +72,6 @@ def start_menu():
                     return 1
                 if x >= coord2[0] and x <= coord2[2] and y >= coord2[1] and y <= coord2[3]:
                     return 2
-        pygame.display.flip()
-        clock.tick(FPS)
 
 
 def load_image(name, colorkey=None):
@@ -267,12 +267,35 @@ class Asteroid(pygame.sprite.Sprite):
         return ok
 
 
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self, sheet, columns, rows, x, y):
+        super().__init__(explosion_group)
+        self.frames = []
+        self.cut_sheet(sheet, columns, rows)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.rect.move(x, y)
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                cur_image = sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size))
+                self.frames.append(cur_image)
+
+    def update(self):
+        self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+        self.image = self.frames[self.cur_frame]
+
+
 running = True
 while running:
     begin = start_menu()
     get_back_to_menu = False
     while not get_back_to_menu:
-        print(1)
         winner = 0
         game_over = False
         PLAYER1 = Player1()
@@ -295,10 +318,12 @@ while running:
             vert_border3 = Border((WIDTH - top_left * 2) / 2 - 200, (HEIGHT - top_bot * 2 - top_bot) / 2 + 30, 400,
                                   width_bord,
                                   -1)
+            cur_asteroid = 0
             for _ in range(20):
                 cur_asteroid += 1
                 Asteroid()
         else:
+            cur_asteroid = 0
             for _ in range(10):
                 cur_asteroid += 1
                 Asteroid()
@@ -340,7 +365,6 @@ while running:
             bullets2.draw(screen)
             bullets1.draw(screen)
             asteroids_group.draw(screen)
-            pygame.display.flip()
             player1_group.update()
             player2_group.update()
             bullets1.update()
@@ -359,11 +383,29 @@ while running:
         print("gameover")
         game_over = False
         if winner == 1:
-            PLAYER1.kill()
-        else:
+            explosion = Explosion(load_image("explosion.png", -1), 8, 6, PLAYER2.rect.x, PLAYER2.rect.y)
             PLAYER2.kill()
+            while explosion.cur_frame != 78:
+                clock.tick(10)
+                explosion_group.draw(screen)
+                pygame.display.flip()
+                explosion.update()
+        else:
+            explosion = Explosion(load_image("explosion.png", -1), 8, 6, PLAYER1.rect.x, PLAYER1.rect.y)
+            PLAYER1.kill()
+            while explosion.cur_frame != 78:
+                clock.tick(10)
+                explosion_group.draw(screen)
+                pygame.display.flip()
+                explosion.update()
         for ast in asteroids_group:
             ast.kill()
+        for bullet in bullets2:
+            bullet.kill()
+        for bullet in bullets1:
+            bullet.kill()
+        for bord in borders:
+            bord.kill()
         font1 = pygame.font.Font(None, 100)
         font2 = pygame.font.Font(None, 70)
         screen.blit(pygame.transform.scale(load_image("background.png"), (WIDTH, HEIGHT)), [0, 0])
@@ -378,12 +420,10 @@ while running:
         fl = 1
         while fl:
             for e in pygame.event.get():
-                print(1)
                 if e.type == pygame.QUIT:
                     terminate()
                 if e.type == pygame.MOUSEBUTTONDOWN:
                     x1, y1 = e.pos
-                    print(e.pos)
                     if x1 >= 103 and x1 <= 297 and y1 >= 314 and y1 <= 340:
                         fl = 0
                     if x1 >= 575 and x1 <= 883 and y1 >= 314 and y1 <= 340:
