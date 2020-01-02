@@ -112,9 +112,15 @@ class Player2(pygame.sprite.Sprite):
     def update(self):
         for bord in borders:
             if pygame.sprite.collide_mask(self, bord):
+                if bord.type == 2:
+                    self.rect.y += 10
+                if bord.type == 1:
+                    self.rect.y -= 10
+                if bord.type == 3:
+                    self.rect.x += 10
+                if bord.type == 4:
+                    self.rect.x -= 10
                 self.rotating(180)
-                self.rect.x += math.sin(math.radians(self.angle + 180)) * 10
-                self.rect.y += math.cos(math.radians(self.angle + 180)) * 10
                 break
         if pygame.sprite.collide_mask(self, PLAYER1):
             self.rotating(180)
@@ -142,9 +148,15 @@ class Player1(pygame.sprite.Sprite):
     def update(self):
         for bord in borders:
             if pygame.sprite.collide_mask(self, bord):
+                if bord.type == 2:
+                    self.rect.y += 10
+                if bord.type == 1:
+                    self.rect.y -= 10
+                if bord.type == 3:
+                    self.rect.x += 10
+                if bord.type == 4:
+                    self.rect.x -= 10
                 self.rotating(180)
-                self.rect.x += math.sin(math.radians(self.angle + 180)) * 10
-                self.rect.y += math.cos(math.radians(self.angle + 180)) * 10
                 break
         if pygame.sprite.collide_mask(self, PLAYER2):
             self.rotating(180)
@@ -382,8 +394,11 @@ while running:
             pygame.display.flip()
         print("gameover")
         game_over = False
+        sdvig = 30
         if winner == 1:
-            explosion = Explosion(load_image("explosion.png", -1), 8, 6, PLAYER2.rect.x, PLAYER2.rect.y)
+            exp_x = PLAYER2.rect.x + math.sin(math.radians(PLAYER2.angle + 180)) * sdvig
+            exp_y = PLAYER2.rect.y + math.cos(math.radians(PLAYER2.angle + 180)) * sdvig
+            explosion = Explosion(load_image("explosion2.png", -1), 8, 6, exp_x, exp_y)
             PLAYER2.kill()
             while explosion.cur_frame != 44:
                 clock.tick(10)
@@ -391,7 +406,9 @@ while running:
                 pygame.display.flip()
                 explosion.update()
         else:
-            explosion = Explosion(load_image("explosion.png", -1), 8, 6, PLAYER1.rect.x, PLAYER1.rect.y)
+            exp_x = PLAYER1.rect.x + math.sin(math.radians(PLAYER1.angle)) * sdvig
+            exp_y = PLAYER1.rect.y + math.cos(math.radians(PLAYER1.angle)) * sdvig
+            explosion = Explosion(load_image("explosion2.png", -1), 8, 6, exp_x, exp_y)
             PLAYER1.kill()
             while explosion.cur_frame != 44:
                 clock.tick(10)
