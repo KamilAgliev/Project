@@ -126,15 +126,18 @@ class Player2(pygame.sprite.Sprite):
         self.step += 1
         for bord in borders:
             if pygame.sprite.collide_mask(self, bord):
+                self.rotating(180)
                 if bord.type == 2:
                     self.rect.y += 10
-                if bord.type == 1:
+                elif bord.type == 1:
                     self.rect.y -= 10
-                if bord.type == 3:
+                elif bord.type == 3:
                     self.rect.x += 10
-                if bord.type == 4:
+                elif bord.type == 4:
                     self.rect.x -= 10
-                self.rotating(180)
+                else:
+                    self.rect.x += math.sin(math.radians(self.angle + 180)) * 5
+                    self.rect.y += math.cos(math.radians(self.angle + 180)) * 5
                 break
         if pygame.sprite.collide_mask(self, PLAYER1):
             self.rotating(180)
@@ -168,15 +171,18 @@ class Player1(pygame.sprite.Sprite):
         self.step += 1
         for bord in borders:
             if pygame.sprite.collide_mask(self, bord):
+                self.rotating(180)
                 if bord.type == 2:
                     self.rect.y += 10
-                if bord.type == 1:
+                elif bord.type == 1:
                     self.rect.y -= 10
-                if bord.type == 3:
+                elif bord.type == 3:
                     self.rect.x += 10
-                if bord.type == 4:
+                elif bord.type == 4:
                     self.rect.x -= 10
-                self.rotating(180)
+                else:
+                    self.rect.x += math.sin(math.radians(self.angle + 180)) * 5
+                    self.rect.y += math.cos(math.radians(self.angle + 180)) * 5
                 break
         if pygame.sprite.collide_mask(self, PLAYER2):
             self.rotating(180)
